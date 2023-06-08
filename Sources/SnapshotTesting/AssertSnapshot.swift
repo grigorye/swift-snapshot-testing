@@ -6,7 +6,7 @@ import XCTest
 public var diffTool: String? = nil
 
 /// Whether or not to record all new references.
-public var isRecording = false
+public var isRecording = ProcessInfo.processInfo.environment["SNAPSHOT_RECORDING"] == "YES"
 
 /// Whether or not to record all new references.
 /// Due to a name clash in Xcode 12, this has been renamed to `isRecording`.
@@ -234,7 +234,7 @@ public func verifySnapshot<Value, Format>(
         return "Couldn't snapshot value"
       }
       
-      guard !recording, fileManager.fileExists(atPath: snapshotFileUrl.path) else {
+      guard fileManager.fileExists(atPath: snapshotFileUrl.path) else {
         try snapshotting.diffing.toData(diffable).write(to: snapshotFileUrl)
         #if !os(Linux) && !os(Windows)
         if ProcessInfo.processInfo.environment.keys.contains("__XCODE_BUILT_PRODUCTS_DIR_PATHS") {
@@ -245,15 +245,7 @@ public func verifySnapshot<Value, Format>(
         }
         #endif
 
-        return recording
-          ? """
-            Record mode is on. Turn record mode off and re-run "\(testName)" to test against the newly-recorded snapshot.
-
-            open "\(snapshotFileUrl.absoluteString)"
-
-            Recorded snapshot: …
-            """
-          : """
+        return """
             No reference was found on disk. Automatically recorded snapshot: …
 
             open "\(snapshotFileUrl.path)"
@@ -275,7 +267,14 @@ public func verifySnapshot<Value, Format>(
       #endif
 
       guard let (failure, attachments) = snapshotting.diffing.diff(reference, diffable) else {
+        if recording {
+          try fileManager.setAttributes([.modificationDate: Date()], ofItemAtPath: snapshotFileUrl.path)
+        }
         return nil
+      }
+      
+      if recording {
+        try snapshotting.diffing.toData(diffable).write(to: snapshotFileUrl)
       }
 
       let artifactsUrl = URL(
