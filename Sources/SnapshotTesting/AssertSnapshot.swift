@@ -3,7 +3,7 @@ import XCTest
 /// Enhances failure messages with a command line diff tool expression that can be copied and pasted into a terminal.
 ///
 ///     diffTool = "ksdiff"
-public var diffTool: String? = nil
+public var diffTool: String? = ProcessInfo.processInfo.environment["SNAPSHOT_DIFF_TOOL"]
 
 /// Whether or not to record all new references.
 public var isRecording = ProcessInfo.processInfo.environment["SNAPSHOT_RECORDING"] == "YES"
