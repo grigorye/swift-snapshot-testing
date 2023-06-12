@@ -8,6 +8,8 @@ public var diffTool: String? = ProcessInfo.processInfo.environment["SNAPSHOT_DIF
 /// Whether or not to record all new references.
 public var isRecording = ProcessInfo.processInfo.environment["SNAPSHOT_RECORDING"] == "YES"
 
+public var skipDiffMessage = ProcessInfo.processInfo.environment["SNAPSHOT_SKIP_DIFF_MESSAGE"] == "YES"
+
 /// Whether or not to record all new references.
 /// Due to a name clash in Xcode 12, this has been renamed to `isRecording`.
 @available(*, deprecated, renamed: "isRecording")
@@ -317,13 +319,11 @@ public func verifySnapshot<Value, Format>(
         failureMessage = "Snapshot does not match reference."
       }
 
-      return """
-      \(failureMessage)
-
-      \(diffMessage)
-
-      \(failure.trimmingCharacters(in: .whitespacesAndNewlines))
-      """
+      return [
+        failureMessage,
+        skipDiffMessage ? nil : diffMessage,
+        failure.trimmingCharacters(in: .whitespacesAndNewlines)
+      ].compactMap { $0 }.joined(separator: "\n\n")
     } catch {
       return error.localizedDescription
     }
